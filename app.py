@@ -20,6 +20,7 @@ KNICKS_ORANGE = "#F58426"
 INK = "#10233F"
 MUTED = "#667085"
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+SNAPSHOT_DIR = Path(__file__).resolve().parent / "data"
 
 
 def current_nba_season() -> str:
@@ -393,7 +394,7 @@ def load_data(season: str):
         season=season,
         season_type_all_star="Regular Season",
         player_or_team_abbreviation="T",
-        timeout=60,
+        timeout=12,
     ).get_data_frames()[0]
     games = all_games.loc[all_games["TEAM_ID"] == KNICKS_ID].copy()
 
@@ -402,7 +403,7 @@ def load_data(season: str):
         season_type_all_star="Regular Season",
         measure_type_detailed_defense="Advanced",
         per_mode_detailed="PerGame",
-        timeout=60,
+        timeout=12,
     ).get_data_frames()[0]
 
     players_base = leaguedashplayerstats.LeagueDashPlayerStats(
@@ -411,7 +412,7 @@ def load_data(season: str):
         team_id_nullable=KNICKS_ID,
         measure_type_detailed_defense="Base",
         per_mode_detailed="PerGame",
-        timeout=60,
+        timeout=12,
     ).get_data_frames()[0]
 
     players_advanced = leaguedashplayerstats.LeagueDashPlayerStats(
@@ -420,7 +421,7 @@ def load_data(season: str):
         team_id_nullable=KNICKS_ID,
         measure_type_detailed_defense="Advanced",
         per_mode_detailed="PerGame",
-        timeout=60,
+        timeout=12,
     ).get_data_frames()[0]
 
     advanced_columns = [
@@ -449,6 +450,17 @@ def load_data(season: str):
         games = games.sort_values("GAME_DATE")
 
     return games, teams, players, datetime.now()
+
+
+@st.cache_data(show_spinner=False)
+def load_snapshot():
+    games = pd.read_csv(SNAPSHOT_DIR / "games.csv")
+    teams = pd.read_csv(SNAPSHOT_DIR / "league.csv")
+    players = pd.read_csv(SNAPSHOT_DIR / "players.csv")
+    games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
+    games = games.sort_values("GAME_DATE")
+    refreshed_at = datetime.fromtimestamp((SNAPSHOT_DIR / "snapshot.txt").stat().st_mtime)
+    return games, teams, players, refreshed_at
 
 
 def team_rank(league: pd.DataFrame, column: str, ascending: bool) -> int | None:
@@ -596,16 +608,21 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+data_status = "Live NBA.com data"
 try:
     games, league, players, fetched_at = load_data(season)
-except Exception as exc:
-    st.error(
-        "The NBA data service did not respond. Wait a minute, refresh the page, "
-        "and try again."
-    )
-    with st.expander("Technical details"):
-        st.code(str(exc))
-    st.stop()
+except Exception:
+    try:
+        games, league, players, fetched_at = load_snapshot()
+        data_status = "NBA.com snapshot fallback"
+    except Exception as snapshot_exc:
+        st.error(
+            "The NBA data service did not respond and the saved dashboard data "
+            "could not be loaded."
+        )
+        with st.expander("Technical details"):
+            st.code(str(snapshot_exc))
+        st.stop()
 
 if games.empty:
     st.warning(f"No Knicks regular-season games were returned for {season}.")
@@ -897,7 +914,7 @@ with games_tab:
 st.markdown(
     f"""
     <div class="source-note">
-      Data source: NBA.com · Refreshed {fetched_at.strftime('%b %d, %Y at %I:%M %p')} ·
+      Data source: NBA.com · {data_status} · Refreshed {fetched_at.strftime('%b %d, %Y at %I:%M %p')} ·
       Regular season only. Ratings are points per 100 possessions.
     </div>
     """,
