@@ -370,16 +370,29 @@ def inject_styles() -> None:
             border-radius: 14px;
         }}
         @media (max-width: 650px) {{
-            .hero {{ min-height: 275px; padding: 1.45rem 1.4rem; border-radius: 22px; }}
-            .hero-copy {{ max-width: 48%; }}
+            .hero {{ min-height: 340px; padding: 1.45rem 1.4rem; border-radius: 22px; }}
+            .hero-copy {{ max-width: 100%; }}
             .hero h1 {{ font-size: clamp(2.65rem, 11vw, 3.55rem); }}
             .hero-logo {{ width: 43px; height: 43px; }}
             .hero-kicker {{ font-size: .61rem; letter-spacing: .12em; }}
             .hero-kicker::before {{ display: none; }}
-            .hero-starting-five {{ right: -9%; width: 78%; max-height: 86%; }}
+            .hero-starting-five {{
+                right: -6%;
+                width: 112%;
+                max-height: 52%;
+                object-position: center bottom;
+            }}
             .hero::before {{ width: 18rem; height: 18rem; right: -7rem; top: -4rem; }}
         }}
         @media (min-width: 651px) and (max-width: 950px) {{
+            .hero {{ min-height: 390px; }}
+            .hero-copy {{ max-width: 100%; }}
+            .hero-starting-five {{
+                right: -2%;
+                width: 100%;
+                max-height: 57%;
+                object-position: center bottom;
+            }}
             .recent-games-grid {{ grid-template-columns: repeat(3, minmax(0, 1fr)); }}
         }}
         </style>
