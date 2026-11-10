@@ -1,0 +1,8 @@
+.DS_Store
+.idea/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.streamlit/secrets.toml
+/knicks-starting-five.png
