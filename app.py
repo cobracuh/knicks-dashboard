@@ -30,6 +30,10 @@ def current_nba_season() -> str:
 
 
 def image_data_uri(path: Path) -> str:
+    encoded_path = path.with_suffix(".b64")
+    if encoded_path.exists():
+        encoded = encoded_path.read_text(encoding="utf-8").strip()
+        return f"data:image/png;base64,{encoded}"
     encoded = base64.b64encode(path.read_bytes()).decode("ascii")
     return f"data:image/png;base64,{encoded}"
 
