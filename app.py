@@ -2,6 +2,7 @@ import base64
 import html
 from datetime import date, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import plotly.express as px
@@ -476,7 +477,16 @@ def load_snapshot():
     players = pd.read_csv(SNAPSHOT_DIR / "players.csv")
     games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
     games = games.sort_values("GAME_DATE")
-    refreshed_at = datetime.fromtimestamp((SNAPSHOT_DIR / "snapshot.txt").stat().st_mtime)
+    snapshot_file = SNAPSHOT_DIR / "snapshot.txt"
+    snapshot_values = {}
+    for line in snapshot_file.read_text(encoding="utf-8").splitlines():
+        if "=" in line:
+            key, value = line.split("=", 1)
+            snapshot_values[key] = value
+    try:
+        refreshed_at = datetime.fromisoformat(snapshot_values["refreshed_at_utc"])
+    except (KeyError, ValueError):
+        refreshed_at = datetime.fromtimestamp(snapshot_file.stat().st_mtime)
     return games, teams, players, refreshed_at
 
 
@@ -931,7 +941,7 @@ with games_tab:
 st.markdown(
     f"""
     <div class="source-note">
-      Data source: NBA.com · {data_status} · Refreshed {fetched_at.strftime('%b %d, %Y at %I:%M %p')} ·
+      Data source: NBA.com · {data_status} · Refreshed {fetched_at.astimezone(ZoneInfo('America/Chicago')).strftime('%b %d, %Y at %I:%M %p CT')} ·
       Regular season only. Ratings are points per 100 possessions.
     </div>
     """,

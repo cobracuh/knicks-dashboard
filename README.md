@@ -29,9 +29,14 @@ The app will open at `http://localhost:8501`.
 
 The dashboard reads current regular-season data from NBA.com through `nba_api`. No API key is required.
 
+## Automatic data updates
+
+GitHub Actions refreshes the saved NBA.com data every day at 6:00 AM Central Time. When the data changes, the workflow commits the new snapshot and Streamlit Community Cloud automatically redeploys the dashboard. The workflow can also be run manually from the repository's **Actions** tab.
+
 ## Project files
 
 - `app.py` — Streamlit application
 - `requirements.txt` — Python dependencies
+- `scripts/update_snapshot.py` — validates and saves the latest NBA data
+- `.github/workflows/refresh-data.yml` — daily refresh automation
 - `assets/knicks-starting-five.png` — dashboard header artwork
-
