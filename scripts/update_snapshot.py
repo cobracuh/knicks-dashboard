@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 from datetime import date, datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import requests
@@ -69,11 +70,14 @@ def fetch_games(season_year: int) -> pd.DataFrame:
         opponent_points = float(opponent["score"]["value"])
         location = "vs." if knicks.get("homeAway") == "home" else "@"
         opponent_abbr = opponent["team"]["abbreviation"]
+        game_date = datetime.fromisoformat(
+            event["date"].replace("Z", "+00:00")
+        ).astimezone(ZoneInfo("America/New_York"))
         rows.append(
             {
                 "TEAM_ID": KNICKS_ID,
                 "GAME_ID": event["id"],
-                "GAME_DATE": event["date"][:10],
+                "GAME_DATE": game_date.date().isoformat(),
                 "MATCHUP": f"NYK {location} {opponent_abbr}",
                 "WL": "W" if knicks.get("winner") else "L",
                 "PTS": int(knicks_points),
