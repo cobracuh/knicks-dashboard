@@ -8,11 +8,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from nba_api.stats.endpoints import (
-    leaguegamelog,
-    leaguedashplayerstats,
-    leaguedashteamstats,
-)
 
 
 KNICKS_ID = 1610612752
@@ -406,70 +401,6 @@ def inject_styles() -> None:
     )
 
 
-@st.cache_data(ttl="1h", show_spinner="Updating Knicks data...")
-def load_data(season: str):
-    all_games = leaguegamelog.LeagueGameLog(
-        season=season,
-        season_type_all_star="Regular Season",
-        player_or_team_abbreviation="T",
-        timeout=12,
-    ).get_data_frames()[0]
-    games = all_games.loc[all_games["TEAM_ID"] == KNICKS_ID].copy()
-
-    teams = leaguedashteamstats.LeagueDashTeamStats(
-        season=season,
-        season_type_all_star="Regular Season",
-        measure_type_detailed_defense="Advanced",
-        per_mode_detailed="PerGame",
-        timeout=12,
-    ).get_data_frames()[0]
-
-    players_base = leaguedashplayerstats.LeagueDashPlayerStats(
-        season=season,
-        season_type_all_star="Regular Season",
-        team_id_nullable=KNICKS_ID,
-        measure_type_detailed_defense="Base",
-        per_mode_detailed="PerGame",
-        timeout=12,
-    ).get_data_frames()[0]
-
-    players_advanced = leaguedashplayerstats.LeagueDashPlayerStats(
-        season=season,
-        season_type_all_star="Regular Season",
-        team_id_nullable=KNICKS_ID,
-        measure_type_detailed_defense="Advanced",
-        per_mode_detailed="PerGame",
-        timeout=12,
-    ).get_data_frames()[0]
-
-    advanced_columns = [
-        "PLAYER_ID",
-        "TS_PCT",
-        "USG_PCT",
-        "OFF_RATING",
-        "DEF_RATING",
-        "NET_RATING",
-        "AST_PCT",
-        "REB_PCT",
-        "PIE",
-    ]
-    available_advanced = [
-        column for column in advanced_columns if column in players_advanced.columns
-    ]
-
-    players = players_base.merge(
-        players_advanced[available_advanced],
-        on="PLAYER_ID",
-        how="left",
-    )
-
-    if not games.empty:
-        games["GAME_DATE"] = pd.to_datetime(games["GAME_DATE"])
-        games = games.sort_values("GAME_DATE")
-
-    return games, teams, players, datetime.now()
-
-
 @st.cache_data(show_spinner=False)
 def load_snapshot():
     games = pd.read_csv(SNAPSHOT_DIR / "games.csv")
@@ -601,8 +532,7 @@ def recent_games_html(games: pd.DataFrame) -> str:
 
 
 def player_headshot_url(player_id, compact: bool = False) -> str:
-    size = "260x190" if compact else "1040x760"
-    return f"https://cdn.nba.com/headshots/nba/latest/{size}/{int(player_id)}.png"
+    return f"https://a.espncdn.com/i/headshots/nba/players/full/{int(player_id)}.png"
 
 
 st.set_page_config(
@@ -635,21 +565,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-data_status = "Live NBA.com data"
+data_status = "Daily ESPN snapshot"
 try:
-    games, league, players, fetched_at = load_data(season)
-except Exception:
-    try:
-        games, league, players, fetched_at = load_snapshot()
-        data_status = "NBA.com snapshot fallback"
-    except Exception as snapshot_exc:
-        st.error(
-            "The NBA data service did not respond and the saved dashboard data "
-            "could not be loaded."
-        )
-        with st.expander("Technical details"):
-            st.code(str(snapshot_exc))
-        st.stop()
+    games, league, players, fetched_at = load_snapshot()
+except Exception as snapshot_exc:
+    st.error("The saved dashboard data could not be loaded.")
+    with st.expander("Technical details"):
+        st.code(str(snapshot_exc))
+    st.stop()
 
 if games.empty:
     st.warning(f"No Knicks regular-season games were returned for {season}.")
@@ -941,7 +864,7 @@ with games_tab:
 st.markdown(
     f"""
     <div class="source-note">
-      Data source: NBA.com · {data_status} · Refreshed {fetched_at.astimezone(ZoneInfo('America/Chicago')).strftime('%b %d, %Y at %I:%M %p CT')} ·
+      Data source: ESPN · {data_status} · Refreshed {fetched_at.astimezone(ZoneInfo('America/Chicago')).strftime('%b %d, %Y at %I:%M %p CT')} ·
       Regular season only. Ratings are points per 100 possessions.
     </div>
     """,
