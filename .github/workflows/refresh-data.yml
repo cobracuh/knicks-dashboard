@@ -1,6 +1,12 @@
 name: Refresh Knicks data
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/update_snapshot.py"
+      - "requirements.txt"
+      - ".github/workflows/refresh-data.yml"
   schedule:
     - cron: "0 6 * * *"
       timezone: "America/Chicago"
