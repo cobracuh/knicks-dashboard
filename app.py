@@ -401,7 +401,6 @@ def inject_styles() -> None:
     )
 
 
-@st.cache_data(show_spinner=False)
 def load_snapshot():
     games = pd.read_csv(SNAPSHOT_DIR / "games.csv")
     teams = pd.read_csv(SNAPSHOT_DIR / "league.csv")
